@@ -418,9 +418,9 @@ abstract class VisionProcessorBase<T>(context: Context) : VisionImageProcessor {
             override fun onResponse(call: Call<JsonObject>, response: Response<JsonObject>) {
                 Log.d("HARRY", response.body().toString())
                 Toast.makeText(
-                    context,
+                    context.applicationContext,
                     "result: " + response.body().toString(),
-                    Toast.LENGTH_SHORT
+                    Toast.LENGTH_LONG
                 ).show()
             }
             override fun onFailure(call: Call<JsonObject>, t: Throwable) {

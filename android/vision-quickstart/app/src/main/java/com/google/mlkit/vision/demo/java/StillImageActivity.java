@@ -366,6 +366,7 @@ public final class StillImageActivity extends AppCompatActivity {
       if (imageProcessor != null) {
         graphicOverlay.setImageSourceInfo(
             resizedBitmap.getWidth(), resizedBitmap.getHeight(), /* isFlipped= */ false);
+        // Step 2 find the image getting processed 
         imageProcessor.processBitmap(resizedBitmap, graphicOverlay);
       } else {
         Log.e(TAG, "Null imageProcessor, please check adb logs for imageProcessor creation error");
