@@ -37,6 +37,7 @@ import android.widget.ArrayAdapter
 import android.widget.ImageView
 import android.widget.PopupMenu
 import android.widget.Spinner
+import android.widget.TextView
 import android.widget.Toast
 import com.google.android.gms.common.annotation.KeepName
 import com.google.gson.JsonObject
@@ -160,6 +161,9 @@ class StillImageActivity : AppCompatActivity(), TextRecognitionProcessor.TextRec
           "result: " + response.body().toString(),
           Toast.LENGTH_LONG
         ).show()
+
+        val textView = findViewById<TextView>(R.id.outputChatGpt)
+        textView.text = response.body().toString()
       }
 
       override fun onFailure(call: Call<JsonObject>, t: Throwable) {
