@@ -18,6 +18,7 @@ package com.google.mlkit.vision.demo.kotlin
 
 import android.app.Activity
 import android.content.ContentValues
+import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Bitmap
@@ -38,11 +39,14 @@ import android.widget.PopupMenu
 import android.widget.Spinner
 import android.widget.Toast
 import com.google.android.gms.common.annotation.KeepName
+import com.google.gson.JsonObject
 import com.google.mlkit.common.model.LocalModel
 import com.google.mlkit.vision.demo.BitmapUtils
 import com.google.mlkit.vision.demo.GraphicOverlay
 import com.google.mlkit.vision.demo.R
 import com.google.mlkit.vision.demo.VisionImageProcessor
+import com.google.mlkit.vision.demo.api.ChatGptInterface
+import com.google.mlkit.vision.demo.api.RetrofitClient
 import com.google.mlkit.vision.demo.kotlin.barcodescanner.BarcodeScannerProcessor
 import com.google.mlkit.vision.demo.kotlin.facedetector.FaceDetectorProcessor
 import com.google.mlkit.vision.demo.kotlin.facemeshdetector.FaceMeshDetectorProcessor
@@ -61,12 +65,15 @@ import com.google.mlkit.vision.text.devanagari.DevanagariTextRecognizerOptions
 import com.google.mlkit.vision.text.japanese.JapaneseTextRecognizerOptions
 import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import java.io.IOException
 import java.util.ArrayList
 
 /** Activity demonstrating different image detector features with a still image from camera. */
 @KeepName
-class StillImageActivity : AppCompatActivity() {
+class StillImageActivity : AppCompatActivity(), TextRecognitionProcessor.TextRecognitionListener {
   private var preview: ImageView? = null
   private var graphicOverlay: GraphicOverlay? = null
   private var selectedMode = OBJECT_DETECTION
@@ -133,6 +140,33 @@ class StillImageActivity : AppCompatActivity() {
       intent.putExtra(SettingsActivity.EXTRA_LAUNCH_SOURCE, LaunchSource.STILL_IMAGE)
       startActivity(intent)
     }
+  }
+
+  override fun onTextRecognized(recognizedText: String) {
+    sendToChatGpt(recognizedText)
+  }
+
+  private fun sendToChatGpt(question: String) {
+    val retrofit = RetrofitClient.getInstance()
+    val apiInterface = retrofit.create(ChatGptInterface::class.java)
+//            val call: Call<JsonObject> = apiInterface.getResponse("what's 1+1")
+    val call: Call<JsonObject> = apiInterface.getResponse(question)
+
+    call.enqueue(object : Callback<JsonObject> {
+      override fun onResponse(call: Call<JsonObject>, response: Response<JsonObject>) {
+        Log.d("HARRY", response.body().toString())
+        Toast.makeText(
+          applicationContext,
+          "result: " + response.body().toString(),
+          Toast.LENGTH_LONG
+        ).show()
+      }
+
+      override fun onFailure(call: Call<JsonObject>, t: Throwable) {
+        t.printStackTrace()
+          Log.d("HARRY Error", t.toString())
+      }
+    })
   }
 
   public override fun onResume() {
@@ -379,8 +413,9 @@ class StillImageActivity : AppCompatActivity() {
           imageProcessor = FaceDetectorProcessor(this, faceDetectorOptions)
         }
         BARCODE_SCANNING -> imageProcessor = BarcodeScannerProcessor(this, zoomCallback = null)
-        TEXT_RECOGNITION_LATIN ->
-          imageProcessor = TextRecognitionProcessor(this, TextRecognizerOptions.Builder().build())
+        TEXT_RECOGNITION_LATIN -> {
+          imageProcessor = TextRecognitionProcessor(this, TextRecognizerOptions.Builder().build(), this)
+        }
         TEXT_RECOGNITION_CHINESE ->
           imageProcessor =
             TextRecognitionProcessor(this, ChineseTextRecognizerOptions.Builder().build())

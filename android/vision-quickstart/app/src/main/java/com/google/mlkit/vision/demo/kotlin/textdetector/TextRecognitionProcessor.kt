@@ -37,121 +37,114 @@ import retrofit2.Response
 
 /** Processor for the text detector demo. */
 class TextRecognitionProcessor(
-  private val context: Context,
-  textRecognizerOptions: TextRecognizerOptionsInterface
+    private val context: Context,
+    textRecognizerOptions: TextRecognizerOptionsInterface
 ) : VisionProcessorBase<Text>(context) {
-  private val textRecognizer: TextRecognizer = TextRecognition.getClient(textRecognizerOptions)
-  private val shouldGroupRecognizedTextInBlocks: Boolean =
-    PreferenceUtils.shouldGroupRecognizedTextInBlocks(context)
-  private val showLanguageTag: Boolean = PreferenceUtils.showLanguageTag(context)
-  private val showConfidence: Boolean = PreferenceUtils.shouldShowTextConfidence(context)
+    private val textRecognizer: TextRecognizer = TextRecognition.getClient(textRecognizerOptions)
+    private val shouldGroupRecognizedTextInBlocks: Boolean =
+        PreferenceUtils.shouldGroupRecognizedTextInBlocks(context)
+    private val showLanguageTag: Boolean = PreferenceUtils.showLanguageTag(context)
+    private val showConfidence: Boolean = PreferenceUtils.shouldShowTextConfidence(context)
+    private var textRecognitionListener: TextRecognitionListener? = null
 
-  override fun stop() {
-    super.stop()
-    textRecognizer.close()
-  }
-
-  override fun detectInImage(image: InputImage): Task<Text> {
-    return textRecognizer.process(image)
-  }
-
-  override fun onSuccess(text: Text, graphicOverlay: GraphicOverlay) {
-    Log.d(TAG, "On-device Text detection successful")
-    logExtrasForTesting(text)
-    graphicOverlay.add(
-      TextGraphic(
-        graphicOverlay,
-        text,
-        shouldGroupRecognizedTextInBlocks,
-        showLanguageTag,
-        showConfidence
-      )
-    )
-    // todo a for loop
-    sendToChatGpt(text.textBlocks[0].text, context)
-  }
-
-  private fun sendToChatGpt(question: String, context: Context) {
-    val retrofit = RetrofitClient.getInstance()
-    val apiInterface = retrofit.create(ChatGptInterface::class.java)
-//            val call: Call<JsonObject> = apiInterface.getResponse("what's 1+1")
-    val call: Call<JsonObject> = apiInterface.getResponse(question)
-
-    call.enqueue(object : Callback<JsonObject> {
-      override fun onResponse(call: Call<JsonObject>, response: Response<JsonObject>) {
-        Log.d("HARRY", response.body().toString())
-        Toast.makeText(
-          context.applicationContext,
-          "result: " + response.body().toString(),
-          Toast.LENGTH_LONG
-        ).show()
-
-
-      }
-      override fun onFailure(call: Call<JsonObject>, t: Throwable) {
-        t.printStackTrace()
-        Log.d("HARRY Error", t.toString())!!
-      }
-    })
-  }
-
-  override fun onFailure(e: Exception) {
-    Log.w(TAG, "Text detection failed.$e")
-  }
-
-  companion object {
-    private const val TAG = "TextRecProcessor"
-    private fun logExtrasForTesting(text: Text?) {
-      if (text != null) {
-        Log.v(MANUAL_TESTING_LOG, "Detected text has : " + text.textBlocks.size + " blocks")
-        for (i in text.textBlocks.indices) {
-          val lines = text.textBlocks[i].lines
-          Log.v(
-            MANUAL_TESTING_LOG,
-            String.format("Detected text block %d has %d lines", i, lines.size)
-          )
-          for (j in lines.indices) {
-            val elements = lines[j].elements
-            Log.v(
-              MANUAL_TESTING_LOG,
-              String.format("Detected text line %d has %d elements", j, elements.size)
-            )
-            for (k in elements.indices) {
-              val element = elements[k]
-              Log.v(
-                MANUAL_TESTING_LOG,
-                String.format("Detected text element %d says: %s", k, element.text)
-              )
-              Log.v(
-                MANUAL_TESTING_LOG,
-                String.format(
-                  "Detected text element %d has a bounding box: %s",
-                  k,
-                  element.boundingBox!!.flattenToString()
-                )
-              )
-              Log.v(
-                MANUAL_TESTING_LOG,
-                String.format(
-                  "Expected corner point size is 4, get %d",
-                  element.cornerPoints!!.size
-                )
-              )
-              for (point in element.cornerPoints!!) {
-                Log.v(
-                  MANUAL_TESTING_LOG,
-                  String.format(
-                    "Corner point for element %d is located at: x - %d, y = %d",
-                    k,
-                    point.x,
-                    point.y
-                  )
-                )
-              }
-            }
-          }
-        }
-      }
+    // Secondary constructor with an extra parameter
+    constructor(
+        context: Context,
+        textRecognizerOptions: TextRecognizerOptionsInterface,
+        listener: TextRecognitionListener // Replace SomeType with the actual data type of your extra parameter
+    ) : this(context, textRecognizerOptions) {
+        // Initialize the extra parameter here
+        this.textRecognitionListener = listener
     }
-  }
+
+    override fun stop() {
+        super.stop()
+        textRecognizer.close()
+    }
+
+    override fun detectInImage(image: InputImage): Task<Text> {
+        return textRecognizer.process(image)
+    }
+
+    override fun onSuccess(text: Text, graphicOverlay: GraphicOverlay) {
+        Log.d(TAG, "On-device Text detection successful")
+        logExtrasForTesting(text)
+        graphicOverlay.add(
+            TextGraphic(
+                graphicOverlay,
+                text,
+                shouldGroupRecognizedTextInBlocks,
+                showLanguageTag,
+                showConfidence
+            )
+        )
+        // todo a for loop
+        val recognizedText = text.textBlocks[0].text
+        // Check if a listener is set and pass the recognized text to the activity
+        textRecognitionListener!!.onTextRecognized(recognizedText)
+    }
+
+    override fun onFailure(e: Exception) {
+        Log.w(TAG, "Text detection failed.$e")
+    }
+
+    companion object {
+        private const val TAG = "TextRecProcessor"
+        private fun logExtrasForTesting(text: Text?) {
+            if (text != null) {
+                Log.v(MANUAL_TESTING_LOG, "Detected text has : " + text.textBlocks.size + " blocks")
+                for (i in text.textBlocks.indices) {
+                    val lines = text.textBlocks[i].lines
+                    Log.v(
+                        MANUAL_TESTING_LOG,
+                        String.format("Detected text block %d has %d lines", i, lines.size)
+                    )
+                    for (j in lines.indices) {
+                        val elements = lines[j].elements
+                        Log.v(
+                            MANUAL_TESTING_LOG,
+                            String.format("Detected text line %d has %d elements", j, elements.size)
+                        )
+                        for (k in elements.indices) {
+                            val element = elements[k]
+                            Log.v(
+                                MANUAL_TESTING_LOG,
+                                String.format("Detected text element %d says: %s", k, element.text)
+                            )
+                            Log.v(
+                                MANUAL_TESTING_LOG,
+                                String.format(
+                                    "Detected text element %d has a bounding box: %s",
+                                    k,
+                                    element.boundingBox!!.flattenToString()
+                                )
+                            )
+                            Log.v(
+                                MANUAL_TESTING_LOG,
+                                String.format(
+                                    "Expected corner point size is 4, get %d",
+                                    element.cornerPoints!!.size
+                                )
+                            )
+                            for (point in element.cornerPoints!!) {
+                                Log.v(
+                                    MANUAL_TESTING_LOG,
+                                    String.format(
+                                        "Corner point for element %d is located at: x - %d, y = %d",
+                                        k,
+                                        point.x,
+                                        point.y
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    interface TextRecognitionListener {
+        fun onTextRecognized(recognizedText: String)
+    }
 }

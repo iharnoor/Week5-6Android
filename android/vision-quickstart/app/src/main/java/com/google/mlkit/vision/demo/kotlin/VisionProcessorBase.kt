@@ -322,15 +322,6 @@ abstract class VisionProcessorBase<T>(context: Context) : VisionImageProcessor {
                     if (numRuns >= 500) {
                         resetLatencyStats()
                     }
-                    if (results is Text) {
-                        val text = (results as Text).text
-                        // Use the 'text' variable here
-                        Toast.makeText(
-                            graphicOverlay.context,
-                            "received text $text",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
                     numRuns++
                     frameProcessedInOneSecondInterval++
                     totalFrameMs += currentFrameLatencyMs
