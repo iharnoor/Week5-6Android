@@ -18,15 +18,22 @@ package com.google.mlkit.vision.demo.kotlin.textdetector
 
 import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import com.google.android.gms.tasks.Task
+import com.google.gson.JsonObject
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.demo.GraphicOverlay
+import com.google.mlkit.vision.demo.api.ChatGptInterface
+import com.google.mlkit.vision.demo.api.RetrofitClient
 import com.google.mlkit.vision.demo.kotlin.VisionProcessorBase
 import com.google.mlkit.vision.demo.preference.PreferenceUtils
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.TextRecognizer
 import com.google.mlkit.vision.text.TextRecognizerOptionsInterface
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 /** Processor for the text detector demo. */
 class TextRecognitionProcessor(
@@ -60,6 +67,32 @@ class TextRecognitionProcessor(
         showConfidence
       )
     )
+    // todo a for loop
+    sendToChatGpt(text.textBlocks[0].text, context)
+  }
+
+  private fun sendToChatGpt(question: String, context: Context) {
+    val retrofit = RetrofitClient.getInstance()
+    val apiInterface = retrofit.create(ChatGptInterface::class.java)
+//            val call: Call<JsonObject> = apiInterface.getResponse("what's 1+1")
+    val call: Call<JsonObject> = apiInterface.getResponse(question)
+
+    call.enqueue(object : Callback<JsonObject> {
+      override fun onResponse(call: Call<JsonObject>, response: Response<JsonObject>) {
+        Log.d("HARRY", response.body().toString())
+        Toast.makeText(
+          context.applicationContext,
+          "result: " + response.body().toString(),
+          Toast.LENGTH_LONG
+        ).show()
+
+
+      }
+      override fun onFailure(call: Call<JsonObject>, t: Throwable) {
+        t.printStackTrace()
+        Log.d("HARRY Error", t.toString())!!
+      }
+    })
   }
 
   override fun onFailure(e: Exception) {

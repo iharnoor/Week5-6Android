@@ -445,6 +445,7 @@ public final class StillImageActivity extends AppCompatActivity {
           }
           imageProcessor =
               new TextRecognitionProcessor(this, new TextRecognizerOptions.Builder().build());
+          // add here
           break;
         case TEXT_RECOGNITION_CHINESE:
           if (imageProcessor != null) {

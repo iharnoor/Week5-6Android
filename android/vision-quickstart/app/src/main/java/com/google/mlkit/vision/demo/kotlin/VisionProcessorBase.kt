@@ -330,7 +330,6 @@ abstract class VisionProcessorBase<T>(context: Context) : VisionImageProcessor {
                             "received text $text",
                             Toast.LENGTH_SHORT
                         ).show()
-                        sendToChatGpt(text, graphicOverlay.context)
                     }
                     numRuns++
                     frameProcessedInOneSecondInterval++
@@ -406,28 +405,6 @@ abstract class VisionProcessorBase<T>(context: Context) : VisionImageProcessor {
                     this@VisionProcessorBase.onFailure(e)
                 }
             )
-    }
-
-    private fun sendToChatGpt(question: String, context: Context) {
-        val retrofit = RetrofitClient.getInstance()
-        val apiInterface = retrofit.create(ChatGptInterface::class.java)
-//            val call: Call<JsonObject> = apiInterface.getResponse("what's 1+1")
-        val call: Call<JsonObject> = apiInterface.getResponse(question)
-
-        call.enqueue(object : Callback<JsonObject> {
-            override fun onResponse(call: Call<JsonObject>, response: Response<JsonObject>) {
-                Log.d("HARRY", response.body().toString())
-                Toast.makeText(
-                    context.applicationContext,
-                    "result: " + response.body().toString(),
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-            override fun onFailure(call: Call<JsonObject>, t: Throwable) {
-                t.printStackTrace()
-                Log.d("HARRY Error", t.toString())!!
-            }
-        })
     }
 
     override fun stop() {
